@@ -2,6 +2,9 @@
 
 $(function (window, undefined) {
 
+  /**
+   * Load JSON data.
+   */
   $.ajax({
     dataType: 'json',
     url: 'data.json'
@@ -9,7 +12,16 @@ $(function (window, undefined) {
     console.log('[IAT] Failed loading data.');
   }).done(init);
 
+  /**
+   * Start the application when data is loaded and ready.
+   */
   function init (data) {
+
+    // Store jQuery-wrapped `window`,
+    // key codes constants for `E` and `I` keys,
+    // and a dictionnary for those keys so that
+    // we can bind in our code the keys to the
+    // words of `left` and `right`.
     var $win = $(window),
         KEYCODE_E_LEFT = 69,
         KEYCODE_I_RIGHT = 73,
