@@ -22,10 +22,13 @@ $(function (window, undefined) {
     // and a dictionnary for those keys so that
     // we can bind in our code the keys to the
     // words of `left` and `right`.
+    // Set the default timespace allowed for
+    // answering a trial.
     var $win = $(window),
         KEYCODE_E_LEFT = 69,
         KEYCODE_I_RIGHT = 73,
-        KEYS = {};
+        KEYS = {},
+        DEFAULT_ANSWER_TIMESPAN = 10;
 
     KEYS[KEYCODE_E_LEFT] = 'left';
     KEYS[KEYCODE_I_RIGHT] = 'right';
@@ -44,6 +47,7 @@ $(function (window, undefined) {
           elapsed = 0,
           timer = null;
 
+      // Process calculations with auto-correction.
       var instance = function () {
         time += 100;
         elapsed = (time / 100) / 10;
@@ -52,6 +56,7 @@ $(function (window, undefined) {
         console.log(elapsed)
       }.bind(this);
 
+      // Starts the timer.
       var start = function () {
         if (startTime === null) {
           startTime = new Date().getTime();
@@ -61,15 +66,18 @@ $(function (window, undefined) {
         timer = window.setTimeout(instance, 100);
       }.bind(this);
 
+      // Stops the timer.
       var stop = function () {
         startTime = null;
         clearTimeout(timer);
       }.bind(this);
 
+      // Return elpased time.
       var getElapsed = function () {
         return elapsed;
       };
 
+      // Public API.
       return {
         start: start,
         stop: stop,
@@ -77,6 +85,20 @@ $(function (window, undefined) {
       }
     })();
 
+    /**
+     * Create and display a practice block.
+     * A practice block is a block with either a pair of concepts
+     * OR a pair of evaluation (but not both at the same time!),
+     * set in top of the left and right halves of the screen.
+     *
+     * @param  {Array} pairedSetsInArray  An array of two objects each following
+     *                                    this nomenclatura: {type:String, items:Array}.
+     *
+     * @return {Object}  An object built upon a scoped construction.
+     * Provides an `start` method, returns a promise. The `start` method will run
+     * the entire block of trials till the end. Once resolved, the promise will take
+     * a function and pass it an object holding the results of challenge.
+     */
     function createPracticeBlock(pairedSetsInArray) {
 
       return (function (pairedSetsInArray) {
@@ -86,23 +108,108 @@ $(function (window, undefined) {
             totalTrials = setA.items.length + setB.items.length,
             currentTrial = 0,
             preparedSet = prepareSets(setA, setB),
-            deferred = $.Deferred();
+            deferred = $.Deferred(),
+            pressedBtn = null,
+            answerMeasureTimer = null,
+            answerLimitTimer = null;
 
+        /**
+         * Displays the next trial.
+         * Deals with all things related to the trial's lifespan, including displaying
+         * the screen, capturing user input and timing her reply, displaying feedback
+         * on wrong answers and resetting the trial, storing errors...
+         *
+         * @return {void}
+         */
         var displayNextTrial = function () {
+
+          /**
+           * Provides a defined timespan for the user to input her answer.
+           * If user does not answer within the timespan, display an error feedback.
+           *
+           * @param {integer} seconds      The amount of time to answer, in seconds.
+           * @param {Object}  item         An object plucked for the list of objects used
+           *                               to create a new trial.
+           * @param {Object} measureTimer  An instance of the Timer to measure user input.
+           *
+           * @return {void}
+           */
+          var setTimerForAnswer = function (seconds, item, measureTimer) {
+            $win.on('keyup', keyupHandler);
+
+            // Measure time taken to answer.
+            answerMeasureTimer = Timer;
+            answerMeasureTimer.start();
+
+            // Time limit to answer.
+            answerLimitTimer = _.delay(function () {
+              $win.off('keyup', keyupHandler);
+              if (!pressedBtn) {
+                wrongAnswerFeedback(item);
+              }
+            }.bind(this), seconds * 1000)
+          }.bind(this);
+
+          /**
+           * Resets the answer timer (the timer monitoring the timespan within which
+           * user has to provide her answer). Resets a bunch of answer-related
+           * variables as well.
+           *
+           * @return {void}
+           */
+          function resetAnswer() {
+            clearTimeout(answerLimitTimer);
+            $win.off('keyup', keyupHandler);
+            answerMeasureTimer.stop();
+            answerMeasureTimer = null;
+            pressedBtn = null;
+          }
+
+          /**
+           * Key up event handler monitoring user input.
+           * If, during the current turn, no input was already caught,
+           * and user has pressed keys `E` or Ì`, decide based on the
+           * input whether we validate the answer or not,
+           * and act accordingly.
+           *
+           * @param  {Object} e  A jQuery.Event object passed during the event.
+           * @return {void}
+           */
+          function keyupHandler(e) {
+            if (!pressedBtn) {
+              if (e.keyCode === KEYCODE_E_LEFT || e.keyCode === KEYCODE_I_RIGHT) {
+                pressedBtn = e.keyCode;
+                if (displayedChoices[KEYS[pressedBtn]] === pluckedItem.type) {
+                  console.log(answerMeasureTimer.getElapsed())
+                  resetAnswer();
+                  displayNextTrial();
+                } else {
+                  wrongAnswerFeedback();
+                }
+              }
+            }
+          }
+
+          /**
+           * Helper function to display feedback on wrong answer (or if user timed out).
+           * @param  {Object} currentItem  An object plucked for the list of objects used
+           *                               to create a new trial.
+           * @return {void}
+           */
+          var wrongAnswerFeedback = function (currentItem) {
+            console.log('[IAT] WRONG OR MISSING!');
+            resetAnswer();
+            setTimerForAnswer(10, currentItem);
+          };
+
+          // Run for as long as there will be items available.
           if (preparedSet.length > 0) {
 
-            var wrongAnswerFeedback = function (currentItem) {
-              console.log('[IAT] WRONG OR MISSING!');
-              resetAnswer();
-              setTimerForAnswer(10, currentItem);
-            };
-
+            // On each turn, get a random element from the array of items
+            // and shrink the array by doing so. Do all that at low cost.
             var randIndex = Math.floor(Math.random() * (preparedSet.length - 1)),
                 firstItem = preparedSet[0],
-                randItem = preparedSet[randIndex],
-                pressedBtn = null,
-                answerLimitTimer = null,
-                answerMeasureTimer = null;
+                randItem = preparedSet[randIndex];
 
             preparedSet[0] = randItem;
             preparedSet[randIndex] = firstItem;
@@ -119,59 +226,24 @@ $(function (window, undefined) {
               '[IAT] Stimuli displayed is "' + pluckedItem.item + '" (' + pluckedItem.type + ').'
             );
 
-            setTimerForAnswer(10, pluckedItem);
-
-            function setTimerForAnswer(time, item) {
-              $win.on('keyup', keyupHandler);
-
-              // Measure time taken to answer.
-              answerMeasureTimer = Timer;
-              answerMeasureTimer.start();
-
-              // Time limit to answer.
-              answerLimitTimer = _.delay(function () {
-                $win.off('keyup', keyupHandler);
-                if (!pressedBtn) {
-                  wrongAnswerFeedback(item);
-                }
-              }.bind(this), time * 1000);
-            };
-
-            function resetAnswer() {
-              clearTimeout(answerLimitTimer);
-              $win.off('keyup', keyupHandler);
-              answerMeasureTimer.stop();
-              answerMeasureTimer = null;
-              pressedBtn = null;
-            }
-
-            function keyupHandler(e) {
-              if (!pressedBtn) {
-                if (e.keyCode === KEYCODE_E_LEFT || e.keyCode === KEYCODE_I_RIGHT) {
-                  pressedBtn = e.keyCode;
-                  console.log(answerMeasureTimer)
-                  if (displayedChoices[KEYS[pressedBtn]] === pluckedItem.type) {
-                    console.log(answerMeasureTimer.getElapsed())
-                    resetAnswer();
-                    displayNextTrial();
-                  } else {
-                    wrongAnswerFeedback();
-                  }
-                }
-              }
-            }
+            // Let the user proposes an answer.
+            setTimerForAnswer(DEFAULT_ANSWER_TIMESPAN, pluckedItem);
           } else {
+
+            // If nore more trials, resolve the promise with a payload of results.
             console.log('[IAT] Finished block.')
-            deferred.resolve(preparedSet);
+            deferred.resolve(preparedSet); // TODO: return results.
           };
         }.bind(this);
 
+        // Start the block.
         var start = function () {
           console.log('[IAT] Starting practice block.');
           displayNextTrial();
           return deferred.promise();
         };
 
+        // Public API.
         return {
           start: start
         }
@@ -179,6 +251,15 @@ $(function (window, undefined) {
 
     }
 
+    /**
+     * Get a readable digest of the elements to display on
+     * the left and right halves of the screen.
+     *
+     * @param  {rest...} sets  Rest parameters. Each element must be object
+     *                         following this nomenclatura: {type:String, items:Array}.
+     * @return {Object}  An object containing keys `left` and `right` mentioning
+     * as strings the name of evaluations/concepts to display.
+     */
     function getDisplayableChoices(sets) {
       var args = [].slice.call(arguments);
 
@@ -192,6 +273,13 @@ $(function (window, undefined) {
       console.error('[IAT] Something went wrong when attempting to display choices.');
     }
 
+    /**
+     * Prepare given sets of data in a stack of objects usable for trials.
+     *
+     * @param  {rest...} sets  Rest params. Each element must be object
+     *                         following this nomenclatura: {type:String, items:Array}.
+     * @return {array}  A stack of objects.
+     */
     function prepareSets(sets) {
       var args = [].slice.call(arguments),
           result = [];
@@ -206,6 +294,10 @@ $(function (window, undefined) {
       return result;
     }
 
+
+    /**
+     * Start the first (practice) block.
+     */
     var practiceBlock1 = createPracticeBlock(data.evaluations);
     practiceBlock1
       .start()
