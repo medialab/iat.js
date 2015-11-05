@@ -30,7 +30,55 @@ $(function (window, undefined) {
     KEYS[KEYCODE_E_LEFT] = 'left';
     KEYS[KEYCODE_I_RIGHT] = 'right';
 
+    /**
+     * Timer for measuring user input speed.
+     * It's a self-correcting timer to compense for the latency
+     * induced by depending upon CPU time (which itself is
+     * dependant on its current load).
+     *
+     * @see http://www.sitepoint.com/creating-accurate-timers-in-javascript/
+     */
+    var Timer = (function () {
+      var startTime = new Date().getTime(),
+          time = 0,
+          elapsed = 0,
+          timer = null;
+
+      var instance = function () {
+        time += 100;
+        elapsed = (time / 100) / 10;
+        var diff = (new Date().getTime() - startTime) - time;
+        window.setTimeout(instance, (100 - diff));
+        console.log(elapsed)
+      }.bind(this);
+
+      var start = function () {
+        if (startTime === null) {
+          startTime = new Date().getTime();
+        }
+        time = 0;
+        elapsed = 0;
+        timer = window.setTimeout(instance, 100);
+      }.bind(this);
+
+      var stop = function () {
+        startTime = null;
+        clearTimeout(timer);
+      }.bind(this);
+
+      var getElapsed = function () {
+        return elapsed;
+      };
+
+      return {
+        start: start,
+        stop: stop,
+        getElapsed: getElapsed
+      }
+    })();
+
     function createPracticeBlock(pairedSetsInArray) {
+
       return (function (pairedSetsInArray) {
         var setA = pairedSetsInArray[0],
             setB = pairedSetsInArray[1],
@@ -42,11 +90,6 @@ $(function (window, undefined) {
 
         var displayNextTrial = function () {
           if (preparedSet.length > 0) {
-            var randIndex = Math.floor(Math.random() * (preparedSet.length - 1)),
-                firstItem = preparedSet[0],
-                randItem = preparedSet[randIndex],
-                pressedBtn = null,
-                answerTimer = null;
 
             var wrongAnswerFeedback = function (currentItem) {
               console.log('[IAT] WRONG OR MISSING!');
@@ -54,10 +97,18 @@ $(function (window, undefined) {
               setTimerForAnswer(10, currentItem);
             };
 
+            var randIndex = Math.floor(Math.random() * (preparedSet.length - 1)),
+                firstItem = preparedSet[0],
+                randItem = preparedSet[randIndex],
+                pressedBtn = null,
+                answerLimitTimer = null,
+                answerMeasureTimer = null;
+
             preparedSet[0] = randItem;
             preparedSet[randIndex] = firstItem;
 
             var pluckedItem = preparedSet.pop();
+
             console.log(
               '[IAT] Left screen is "'
               + displayedChoices.left
@@ -65,14 +116,20 @@ $(function (window, undefined) {
               + displayedChoices.right + '".'
             );
             console.log(
-              '[IAT] Stimuli displayed is "' + pluckedItem.item + '" (' + pluckedItem.type + ')").'
+              '[IAT] Stimuli displayed is "' + pluckedItem.item + '" (' + pluckedItem.type + ').'
             );
 
             setTimerForAnswer(10, pluckedItem);
 
             function setTimerForAnswer(time, item) {
               $win.on('keyup', keyupHandler);
-              answerTimer = _.delay(function () {
+
+              // Measure time taken to answer.
+              answerMeasureTimer = Timer;
+              answerMeasureTimer.start();
+
+              // Time limit to answer.
+              answerLimitTimer = _.delay(function () {
                 $win.off('keyup', keyupHandler);
                 if (!pressedBtn) {
                   wrongAnswerFeedback(item);
@@ -81,8 +138,10 @@ $(function (window, undefined) {
             };
 
             function resetAnswer() {
-              clearTimeout(answerTimer);
+              clearTimeout(answerLimitTimer);
               $win.off('keyup', keyupHandler);
+              answerMeasureTimer.stop();
+              answerMeasureTimer = null;
               pressedBtn = null;
             }
 
@@ -90,7 +149,9 @@ $(function (window, undefined) {
               if (!pressedBtn) {
                 if (e.keyCode === KEYCODE_E_LEFT || e.keyCode === KEYCODE_I_RIGHT) {
                   pressedBtn = e.keyCode;
+                  console.log(answerMeasureTimer)
                   if (displayedChoices[KEYS[pressedBtn]] === pluckedItem.type) {
+                    console.log(answerMeasureTimer.getElapsed())
                     resetAnswer();
                     displayNextTrial();
                   } else {
@@ -115,6 +176,7 @@ $(function (window, undefined) {
           start: start
         }
       })(pairedSetsInArray);
+
     }
 
     function getDisplayableChoices(sets) {
