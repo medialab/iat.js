@@ -214,7 +214,7 @@ $(function (window, undefined) {
             preparedSet[0] = randItem;
             preparedSet[randIndex] = firstItem;
 
-            var pluckedItem = preparedSet.pop();
+            var pluckedItem = preparedSet.shift();
 
             console.log(
               '[IAT] Left screen is "'
