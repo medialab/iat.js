@@ -53,7 +53,6 @@ $(function (window, undefined) {
         elapsed = (time / 100) / 10;
         var diff = (new Date().getTime() - startTime) - time;
         window.setTimeout(instance, (100 - diff));
-        console.log(elapsed)
       }.bind(this);
 
       // Starts the timer.
@@ -111,7 +110,11 @@ $(function (window, undefined) {
             deferred = $.Deferred(),
             pressedBtn = null,
             answerMeasureTimer = null,
-            answerLimitTimer = null;
+            answerLimitTimer = null,
+            answers = {
+              results: [],
+              errors: []
+            };
 
         /**
          * Displays the next trial.
@@ -122,7 +125,6 @@ $(function (window, undefined) {
          * @return {void}
          */
         var displayNextTrial = function () {
-
           /**
            * Provides a defined timespan for the user to input her answer.
            * If user does not answer within the timespan, display an error feedback.
@@ -145,7 +147,7 @@ $(function (window, undefined) {
             answerLimitTimer = _.delay(function () {
               $win.off('keyup', keyupHandler);
               if (!pressedBtn) {
-                wrongAnswerFeedback(item);
+                wrongAnswerFeedback(item, answerMeasureTimer.getElapsed());
               }
             }.bind(this), seconds * 1000)
           }.bind(this);
@@ -171,6 +173,7 @@ $(function (window, undefined) {
            * and user has pressed keys `E` or Ì`, decide based on the
            * input whether we validate the answer or not,
            * and act accordingly.
+           * Store the results along the way.
            *
            * @param  {Object} e  A jQuery.Event object passed during the event.
            * @return {void}
@@ -179,12 +182,13 @@ $(function (window, undefined) {
             if (!pressedBtn) {
               if (e.keyCode === KEYCODE_E_LEFT || e.keyCode === KEYCODE_I_RIGHT) {
                 pressedBtn = e.keyCode;
+                var time = answerMeasureTimer.getElapsed();
                 if (displayedChoices[KEYS[pressedBtn]] === pluckedItem.type) {
-                  console.log(answerMeasureTimer.getElapsed())
                   resetAnswer();
+                  answers.results.push({ trial: pluckedItem, time: time, choices: displayedChoices });
                   displayNextTrial();
                 } else {
-                  wrongAnswerFeedback();
+                  wrongAnswerFeedback(pluckedItem, time, displayedChoices);
                 }
               }
             }
@@ -192,12 +196,16 @@ $(function (window, undefined) {
 
           /**
            * Helper function to display feedback on wrong answer (or if user timed out).
-           * @param  {Object} currentItem  An object plucked for the list of objects used
-           *                               to create a new trial.
+           * @param  {Object}  currentItem  An object plucked for the list of objects used
+           *                                to create a new trial.
+           * @param  {integer} time         Time the user took to provide the answer.
+           * @param  {Object}  choices      The object containing evalutations/concepts choices
+           *                                (i.e. what's displayed on screen halves).
            * @return {void}
            */
-          var wrongAnswerFeedback = function (currentItem) {
+          var wrongAnswerFeedback = function (currentItem, time, choices) {
             console.log('[IAT] WRONG OR MISSING!');
+            answers.errors.push({ trial: currentItem, time: time, choices: choices });
             resetAnswer();
             setTimerForAnswer(10, currentItem);
           };
@@ -232,7 +240,7 @@ $(function (window, undefined) {
 
             // If nore more trials, resolve the promise with a payload of results.
             console.log('[IAT] Finished block.')
-            deferred.resolve(preparedSet); // TODO: return results.
+            deferred.resolve(answers);
           };
         }.bind(this);
 
@@ -301,8 +309,8 @@ $(function (window, undefined) {
     var practiceBlock1 = createPracticeBlock(data.evaluations);
     practiceBlock1
       .start()
-      .then(function (data) {
-        console.log(data);
+      .then(function (answers) {
+        console.log(answers);
       });
 
   }
