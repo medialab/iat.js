@@ -5,6 +5,17 @@ window.IAT = (function(window, undefined) {
   // jQuery object based on target element the view should attached itself to.
   var $targetEl;
 
+  var $redCross = $(
+    '<div id="iat-red-cross"' +
+    ' style="display:none;' +
+    '        opacity:0;' +
+    '        position:absolute;' +
+    '        width:200px;height:200px;'+
+    '        background:url(img/redcross.gif) transparent center no-repeat;' +
+    '        text-indent:-99999em;">' +
+    '"×</div>'
+  );
+
   // List of JSON files describing data used in each block.
   var dataFiles = [];
 
@@ -22,6 +33,9 @@ window.IAT = (function(window, undefined) {
   var startIAT = function(targetEl, files) {
     $targetEl = $(targetEl);
     dataFiles = files;
+
+    $targetEl = buildDOMTree($targetEl, $redCross);
+
     loadTasks();
   }.bind(this);
 
@@ -33,6 +47,18 @@ window.IAT = (function(window, undefined) {
   var getAnswers = function() {
     return answerStore;
   }.bind(this);
+
+  function buildDOMTree($rootEl, restParamsNodes) {
+    var root = $rootEl;
+    var nodes = [].slice.call(arguments)
+                  .splice(1, arguments.length);
+
+    _.each(nodes, function (node) {
+      root.append(node);
+    });
+
+    return root;
+  }
 
   /**
    * Promise to load JSON data.
