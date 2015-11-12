@@ -1,9 +1,24 @@
 'use strict';
 
-$(function(window, undefined) {
+window.IAT = (function(window, undefined) {
+
+  // jQuery object based on target element the view should attached itself to.
+  var $targetEl;
 
   // Stores all answers from consecutive tests.
   var answerStore = [];
+
+  /**
+   * Start the test.
+   *
+   * @public
+   * @param  {DOMElement} targetEl  Target element the view should attached itself to
+   * @return {void}
+   */
+  var startIAT = function (targetEl) {
+    $targetEl = $(targetEl);
+    loadTask1();
+  }.bind(this);
 
   /**
    * Promise to load JSON data.
@@ -139,9 +154,6 @@ $(function(window, undefined) {
         });
      });
   }
-
-  // Start.
-  loadTask1();
 
   /**
    * Start the application when data is loaded and ready.
@@ -447,4 +459,8 @@ $(function(window, undefined) {
 
   }
 
-}(window, undefined));
+  return {
+    start: startIAT
+  }
+
+})(window, undefined);
