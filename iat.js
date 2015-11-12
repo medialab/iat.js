@@ -1,21 +1,21 @@
 'use strict';
 
-$(function (window, undefined) {
+$(function(window, undefined) {
 
   /**
    * Load JSON data.
    */
   $.ajax({
     dataType: 'json',
-    url: 'data.json'
-  }).fail(function () {
+    url: 'data.json',
+  }).fail(function() {
     console.log('[IAT] Failed loading data.');
   }).done(init);
 
   /**
    * Start the application when data is loaded and ready.
    */
-  function init (data) {
+  function init(data) {
 
     // Store jQuery-wrapped `window`,
     // key codes constants for `E` and `I` keys,
@@ -24,11 +24,11 @@ $(function (window, undefined) {
     // words of `left` and `right`.
     // Set the default timespace allowed for
     // answering a trial.
-    var $win = $(window),
-        KEYCODE_E_LEFT = 69,
-        KEYCODE_I_RIGHT = 73,
-        KEYS = {},
-        DEFAULT_ANSWER_TIMESPAN = 10;
+    var $win = $(window);
+    var KEYCODE_E_LEFT = 69;
+    var KEYCODE_I_RIGHT = 73;
+    var KEYS = {};
+    var DEFAULT_ANSWER_TIMESPAN = 10;
 
     KEYS[KEYCODE_E_LEFT] = 'left';
     KEYS[KEYCODE_I_RIGHT] = 'right';
@@ -41,14 +41,14 @@ $(function (window, undefined) {
      *
      * @see http://www.sitepoint.com/creating-accurate-timers-in-javascript/
      */
-    var Timer = (function () {
-      var startTime = new Date().getTime(),
-          time = 0,
-          elapsed = 0,
-          timer = null;
+    var Timer = (function() {
+      var startTime = new Date().getTime();
+      var time = 0;
+      var elapsed = 0;
+      var timer = null;
 
       // Process calculations with auto-correction.
-      var instance = function () {
+      var instance = function() {
         time += 100;
         elapsed = (time / 100) / 10;
         var diff = (new Date().getTime() - startTime) - time;
@@ -56,23 +56,24 @@ $(function (window, undefined) {
       }.bind(this);
 
       // Starts the timer.
-      var start = function () {
+      var start = function() {
         if (startTime === null) {
           startTime = new Date().getTime();
         }
+
         time = 0;
         elapsed = 0;
         timer = window.setTimeout(instance, 100);
       }.bind(this);
 
       // Stops the timer.
-      var stop = function () {
+      var stop = function() {
         startTime = null;
         clearTimeout(timer);
       }.bind(this);
 
       // Return elpased time.
-      var getElapsed = function () {
+      var getElapsed = function() {
         return elapsed;
       };
 
@@ -80,8 +81,8 @@ $(function (window, undefined) {
       return {
         start: start,
         stop: stop,
-        getElapsed: getElapsed
-      }
+        getElapsed: getElapsed,
+      };
     })();
 
     /**
@@ -100,20 +101,20 @@ $(function (window, undefined) {
      */
     function createPracticeBlock(pairedSetsInArray) {
 
-      return (function (pairedSetsInArray) {
-        var setA = pairedSetsInArray[0],
-            setB = pairedSetsInArray[1],
-            displayedChoices = getDisplayableChoices(setA, setB),
-            totalTrials = setA.items.length + setB.items.length,
-            currentTrial = 0,
-            preparedSet = prepareSets(setA, setB),
-            deferred = $.Deferred(),
-            pressedBtn = null,
-            answerMeasureTimer = null,
-            answerLimitTimer = null,
-            answers = {
+      return (function(pairedSetsInArray) {
+        var setA = pairedSetsInArray[0];
+        var setB = pairedSetsInArray[1];
+        var displayedChoices = getDisplayableChoices(setA, setB);
+        var totalTrials = setA.items.length + setB.items.length;
+        var currentTrial = 0;
+        var preparedSet = prepareSets(setA, setB);
+        var deferred = $.Deferred();
+        var pressedBtn = null;
+        var answerMeasureTimer = null;
+        var answerLimitTimer = null;
+        var answers = {
               results: [],
-              errors: []
+              errors: [],
             };
 
         /**
@@ -124,7 +125,7 @@ $(function (window, undefined) {
          *
          * @return {void}
          */
-        var displayNextTrial = function () {
+        var displayNextTrial = function() {
           /**
            * Provides a defined timespan for the user to input her answer.
            * If user does not answer within the timespan, display an error feedback.
@@ -136,7 +137,7 @@ $(function (window, undefined) {
            *
            * @return {void}
            */
-          var setTimerForAnswer = function (seconds, item, measureTimer) {
+          var setTimerForAnswer = function(seconds, item, measureTimer) {
             $win.on('keyup', keyupHandler);
 
             // Measure time taken to answer.
@@ -144,12 +145,12 @@ $(function (window, undefined) {
             answerMeasureTimer.start();
 
             // Time limit to answer.
-            answerLimitTimer = _.delay(function () {
+            answerLimitTimer = _.delay(function() {
               $win.off('keyup', keyupHandler);
               if (!pressedBtn) {
                 wrongAnswerFeedback(item, answerMeasureTimer.getElapsed());
               }
-            }.bind(this), seconds * 1000)
+            }.bind(this), seconds * 1000);
           }.bind(this);
 
           /**
@@ -203,7 +204,7 @@ $(function (window, undefined) {
            *                                (i.e. what's displayed on screen halves).
            * @return {void}
            */
-          var wrongAnswerFeedback = function (currentItem, time, choices) {
+          var wrongAnswerFeedback = function(currentItem, time, choices) {
             console.log('[IAT] WRONG OR MISSING!');
             answers.errors.push({ trial: currentItem, time: time, choices: choices });
             resetAnswer();
@@ -215,9 +216,9 @@ $(function (window, undefined) {
 
             // On each turn, get a random element from the array of items
             // and shrink the array by doing so. Do all that at low cost.
-            var randIndex = Math.floor(Math.random() * (preparedSet.length - 1)),
-                firstItem = preparedSet[0],
-                randItem = preparedSet[randIndex];
+            var randIndex = Math.floor(Math.random() * (preparedSet.length - 1));
+            var firstItem = preparedSet[0];
+            var randItem = preparedSet[randIndex];
 
             preparedSet[0] = randItem;
             preparedSet[randIndex] = firstItem;
@@ -239,13 +240,13 @@ $(function (window, undefined) {
           } else {
 
             // If nore more trials, resolve the promise with a payload of results.
-            console.log('[IAT] Finished block.')
+            console.log('[IAT] Finished block.');
             deferred.resolve(answers);
           };
         }.bind(this);
 
         // Start the block.
-        var start = function () {
+        var start = function() {
           console.log('[IAT] Starting practice block.');
           displayNextTrial();
           return deferred.promise();
@@ -253,8 +254,8 @@ $(function (window, undefined) {
 
         // Public API.
         return {
-          start: start
-        }
+          start: start,
+        };
       })(pairedSetsInArray);
 
     }
@@ -274,7 +275,7 @@ $(function (window, undefined) {
       if (args.length === 2) {
         return {
           left: args[0].type,
-          right: args[1].type
+          right: args[1].type,
         };
       }
 
@@ -289,12 +290,12 @@ $(function (window, undefined) {
      * @return {array}  A stack of objects.
      */
     function prepareSets(sets) {
-      var args = [].slice.call(arguments),
-          result = [];
+      var args = [].slice.call(arguments);
+      var result = [];
 
-      _.each(args, function (set) {
+      _.each(args, function(set) {
         var items = set.items;
-        _.each(items, function (item) {
+        _.each(items, function(item) {
           result.push({ type: set.type, item: item });
         });
       });
@@ -302,14 +303,13 @@ $(function (window, undefined) {
       return result;
     }
 
-
     /**
      * Start the first (practice) block.
      */
     var practiceBlock1 = createPracticeBlock(data.evaluations);
     practiceBlock1
       .start()
-      .then(function (answers) {
+      .then(function(answers) {
         console.log(answers);
       });
 
