@@ -5,6 +5,9 @@ window.IAT = (function(window, undefined) {
   // jQuery object based on target element the view should attached itself to.
   var $targetEl;
 
+  // List of JSON files describing data used in each block.
+  var dataFiles = [];
+
   // Stores all answers from consecutive tests.
   var answerStore = [];
 
@@ -12,12 +15,23 @@ window.IAT = (function(window, undefined) {
    * Start the test.
    *
    * @public
-   * @param  {DOMElement} targetEl  Target element the view should attached itself to
+   * @param  {DOMElement} targetEl  Target element the view should attached itself to.
+   * @param  {Array}      files     List of JSON files describing data used in each block.
    * @return {void}
    */
-  var startIAT = function (targetEl) {
+  var startIAT = function(targetEl, files) {
     $targetEl = $(targetEl);
-    loadTask1();
+    dataFiles = files;
+    loadTasks();
+  }.bind(this);
+
+  /**
+   * Getter method to obtain all the answers.
+   *
+   * @return {Array}  Reference to the answerStore containing all the recorded answers.
+   */
+  var getAnswers = function() {
+    return answerStore;
   }.bind(this);
 
   /**
@@ -43,116 +57,26 @@ window.IAT = (function(window, undefined) {
     return deferred.promise();
   }
 
-  /**
-   * Loading and processing for Task 1 (practice).
-   *
-   * @return {void}
-   */
-  function loadTask1() {
-    $.when(loadJSON('task_1_practice.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask2();
-        });
-     });
-  }
+  function loadTasks() {
+    var currentTaskIndex = 0;
+    var countTask = dataFiles.length;
 
-  /**
-   * Loading and processing for Task 2 (practice).
-   *
-   * @return {void}
-   */
-  function loadTask2() {
-    $.when(loadJSON('task_2_practice.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask3();
-        });
-     });
-  }
+    var loadTask = function(taskIndex) {
+      if (taskIndex < countTask) {
+        currentTaskIndex++;
+        $.when(loadJSON(dataFiles[taskIndex]))
+         .then(function(data) {
+           start(data).then(function(answers) {
+             answerStore.push(answers);
+             loadTask(currentTaskIndex);
+           });
+         });
+      } else {
+        console.log('[IAT] Test is finished.');
+      }
+    }
 
-  /**
-   * Loading and processing for Task 3 (data collection).
-   *
-   * @return {void}
-   */
-  function loadTask3() {
-    $.when(loadJSON('task_3_data_collection.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask4();
-        });
-     });
-  }
-
-  /**
-   * Loading and processing for Task 4 (data collection).
-   *
-   * @return {void}
-   */
-  function loadTask4() {
-    $.when(loadJSON('task_4_data_collection.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask5();
-        });
-     });
-  }
-
-  /**
-   * Loading and processing for Task 5 (practice).
-   *
-   * @return {void}
-   */
-  function loadTask5() {
-    $.when(loadJSON('task_5_practice.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask6();
-        });
-     });
-  }
-
-  /**
-   * Loading and processing for Task 6 (data collection).
-   *
-   * @return {void}
-   */
-  function loadTask6() {
-    $.when(loadJSON('task_6_data_collection.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask7();
-        });
-     });
-  }
-
-  /**
-   * Loading and processing for Task 7 (data collection).
-   *
-   * @return {void}
-   */
-  function loadTask7() {
-    $.when(loadJSON('task_7_data_collection.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          console.log('[IAT] Test finished.');
-        });
-     });
+    loadTask(0);
   }
 
   /**
@@ -460,7 +384,8 @@ window.IAT = (function(window, undefined) {
   }
 
   return {
-    start: startIAT
+    start: startIAT,
+    getAnswers: getAnswers
   }
 
 })(window, undefined);
