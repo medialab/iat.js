@@ -57,6 +57,12 @@ window.IAT = (function(window, undefined) {
     return deferred.promise();
   }
 
+  /**
+   * Consume the array of JSON files describing the trials
+   * to start the cycle of tests.
+   *
+   * @return {void}
+   */
   function loadTasks() {
     var currentTaskIndex = 0;
     var countTask = dataFiles.length;
