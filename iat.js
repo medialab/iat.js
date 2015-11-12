@@ -35,6 +35,7 @@ window.IAT = (function(window, undefined) {
     dataFiles = files;
 
     $targetEl = buildDOMTree($targetEl, $redCross);
+    setUpLayout();
 
     loadTasks();
   }.bind(this);
@@ -48,6 +49,13 @@ window.IAT = (function(window, undefined) {
     return answerStore;
   }.bind(this);
 
+  /**
+   * Builds DOM tree for elements display by IAT.js (feedback, stimuli, etc...)
+   *
+   * @param  {Object}  $rootEl          jQuery-wrapped DOMElement serving as root node.
+   * @param  {...rest} restParamsNodes  Rest params of jQuery object or DOMElement to attach.
+   * @return {Object}  A jQuery-wrapped DOM tree.
+   */
   function buildDOMTree($rootEl, restParamsNodes) {
     var root = $rootEl;
     var nodes = [].slice.call(arguments)
@@ -58,6 +66,23 @@ window.IAT = (function(window, undefined) {
     });
 
     return root;
+  }
+
+  /**
+   * Helper function to ensure layout is properly set, centered.
+   */
+  function setUpLayout() {
+    var $window = $(window);
+
+    function centerRedCross() {
+      $redCross.offset({
+        top: ($window.height() - $redCross.height()) / 2,
+        left: ($window.width() - $redCross.width()) / 2
+      });
+    }
+
+    centerRedCross();
+    $window.on('resize', centerRedCross);
   }
 
   /**
