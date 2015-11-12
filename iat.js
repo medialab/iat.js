@@ -2,20 +2,153 @@
 
 $(function(window, undefined) {
 
+  // Stores all answers from consecutive tests.
+  var answerStore = [];
+
   /**
-   * Load JSON data.
+   * Promise to load JSON data.
+   *
+   * @param  {String} fileUri  Path to the file to load.
+   * @return {Object} Promise resolving loaded data.
    */
-  $.ajax({
-    dataType: 'json',
-    url: 'data.json',
-  }).fail(function() {
-    console.log('[IAT] Failed loading data.');
-  }).done(init);
+  function loadJSON(fileUri) {
+    var deferred = $.Deferred();
+
+    $.ajax({
+      dataType: 'json',
+      url: fileUri,
+    }).fail(function() {
+      console.log('[IAT] Failed loading data from ' + fileUri + '.');
+      deferred.reject();
+    }).done(function(data) {
+      console.log('[IAT] Loaded ' + fileUri + '.');
+      deferred.resolve(data);
+    });
+
+    return deferred.promise();
+  }
+
+  /**
+   * Loading and processing for Task 1 (practice).
+   *
+   * @return {void}
+   */
+  function loadTask1() {
+    $.when(loadJSON('task_1_practice.json'))
+     .then(function(data) {
+       start(data)
+        .then(function(answers) {
+          answerStore.push(answers);
+          loadTask2();
+        });
+     });
+  }
+
+  /**
+   * Loading and processing for Task 2 (practice).
+   *
+   * @return {void}
+   */
+  function loadTask2() {
+    $.when(loadJSON('task_2_practice.json'))
+     .then(function(data) {
+       start(data)
+        .then(function(answers) {
+          answerStore.push(answers);
+          loadTask3();
+        });
+     });
+  }
+
+  /**
+   * Loading and processing for Task 3 (data collection).
+   *
+   * @return {void}
+   */
+  function loadTask3() {
+    $.when(loadJSON('task_3_data_collection.json'))
+     .then(function(data) {
+       start(data)
+        .then(function(answers) {
+          answerStore.push(answers);
+          loadTask4();
+        });
+     });
+  }
+
+  /**
+   * Loading and processing for Task 4 (data collection).
+   *
+   * @return {void}
+   */
+  function loadTask4() {
+    $.when(loadJSON('task_4_data_collection.json'))
+     .then(function(data) {
+       start(data)
+        .then(function(answers) {
+          answerStore.push(answers);
+          loadTask5();
+        });
+     });
+  }
+
+  /**
+   * Loading and processing for Task 5 (practice).
+   *
+   * @return {void}
+   */
+  function loadTask5() {
+    $.when(loadJSON('task_5_practice.json'))
+     .then(function(data) {
+       start(data)
+        .then(function(answers) {
+          answerStore.push(answers);
+          loadTask6();
+        });
+     });
+  }
+
+  /**
+   * Loading and processing for Task 6 (data collection).
+   *
+   * @return {void}
+   */
+  function loadTask6() {
+    $.when(loadJSON('task_6_data_collection.json'))
+     .then(function(data) {
+       start(data)
+        .then(function(answers) {
+          answerStore.push(answers);
+          loadTask7();
+        });
+     });
+  }
+
+  /**
+   * Loading and processing for Task 7 (data collection).
+   *
+   * @return {void}
+   */
+  function loadTask7() {
+    $.when(loadJSON('task_7_data_collection.json'))
+     .then(function(data) {
+       start(data)
+        .then(function(answers) {
+          answerStore.push(answers);
+          console.log('[IAT] Test finished.');
+        });
+     });
+  }
+
+  // Start.
+  loadTask1();
 
   /**
    * Start the application when data is loaded and ready.
+   *
+   * @param {Object} data  The data parsed from JSON.
    */
-  function init(data) {
+  function start(data) {
 
     // Store jQuery-wrapped `window`,
     // key codes constants for `E` and `I` keys,
@@ -99,7 +232,7 @@ $(function(window, undefined) {
      * the entire block of trials till the end. Once resolved, the promise will take
      * a function and pass it an object holding the results of challenge.
      */
-    function createPracticeBlock(pairedSetsInArray) {
+    function createBlock(pairedSetsInArray) {
 
       return (function(pairedSetsInArray) {
         var setA = pairedSetsInArray[0];
@@ -304,14 +437,9 @@ $(function(window, undefined) {
     }
 
     /**
-     * Start the first (practice) block.
+     * Return the created block as a promise.
      */
-    var practiceBlock1 = createPracticeBlock(data.evaluations);
-    practiceBlock1
-      .start()
-      .then(function(answers) {
-        console.log(answers);
-      });
+    return createBlock(data.evaluations).start();
 
   }
 
