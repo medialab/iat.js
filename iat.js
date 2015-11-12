@@ -21,7 +21,7 @@ $(function(window, undefined) {
       console.log('[IAT] Failed loading data from ' + fileUri + '.');
       deferred.reject();
     }).done(function(data) {
-      console.log('[IAT] Loaded ' + fileUri + '.');
+      console.log('[IAT] Loaded "' + fileUri + '".');
       deferred.resolve(data);
     });
 
