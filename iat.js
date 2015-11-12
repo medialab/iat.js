@@ -319,7 +319,11 @@ $(function(window, undefined) {
                 var time = answerMeasureTimer.getElapsed();
                 if (displayedChoices[KEYS[pressedBtn]] === pluckedItem.type) {
                   resetAnswer();
-                  answers.results.push({ trial: pluckedItem, time: time, choices: displayedChoices });
+                  answers.results.push({
+                    trial: pluckedItem,
+                    time: time, choices:
+                    displayedChoices
+                  });
                   displayNextTrial();
                 } else {
                   wrongAnswerFeedback(pluckedItem, time, displayedChoices);
