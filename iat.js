@@ -142,6 +142,7 @@ window.IAT = (function(window, undefined) {
    * @param {Object} data  The data parsed from JSON.
    */
   function start(data) {
+    console.log(data)
 
     // Store jQuery-wrapped `window`,
     // key codes constants for `E` and `I` keys,
@@ -239,9 +240,11 @@ window.IAT = (function(window, undefined) {
         var answerMeasureTimer = null;
         var answerLimitTimer = null;
         var answers = {
-              results: [],
-              errors: [],
-            };
+          results: [],
+          errors: [],
+        };
+
+        console.log(setA, setB);
 
         /**
          * Displays the next trial.
@@ -314,8 +317,8 @@ window.IAT = (function(window, undefined) {
                   resetAnswer();
                   answers.results.push({
                     trial: pluckedItem,
-                    time: time, choices:
-                    displayedChoices
+                    time: time,
+                    choices: displayedChoices,
                   });
                   displayNextTrial();
                 } else {
@@ -436,7 +439,7 @@ window.IAT = (function(window, undefined) {
     /**
      * Return the created block as a promise.
      */
-    return createBlock(data.evaluations).start();
+    return createBlock(data).start();
 
   }
 
