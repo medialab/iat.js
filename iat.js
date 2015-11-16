@@ -5,6 +5,8 @@ window.IAT = (function(window, undefined) {
   // jQuery object based on target element the view should attached itself to.
   var $targetEl;
 
+  // Big red cross displayed as feedback when user times out on
+  // an answer or give the wrong one.
   var $redCross = $(
     '<div id="iat-red-cross"' +
     ' style="display:none;' +
@@ -83,6 +85,22 @@ window.IAT = (function(window, undefined) {
 
     centerRedCross();
     $window.on('resize', centerRedCross);
+  }
+
+  /**
+   * Display red cross image feedback.
+   *
+   * @param  {boolean} display  Whether to display image or not.
+   * @return {void}
+   */
+  function displayRedCrossFeedback(display) {
+    if (display) {
+      $redCross.css('display', 'block').animate({ 'opacity': 1}, 500);
+    } else {
+      $redCross.animate({ 'opacity': 0}, 500, function() {
+        $redCross.css('display', 'none');
+      });
+    }
   }
 
   /**
@@ -288,6 +306,7 @@ window.IAT = (function(window, undefined) {
            */
           function resetAnswer() {
             clearTimeout(answerLimitTimer);
+            displayRedCrossFeedback(false);
             $win.off('keyup', keyupHandler);
             answerMeasureTimer.stop();
             answerMeasureTimer = null;
@@ -337,6 +356,7 @@ window.IAT = (function(window, undefined) {
           var wrongAnswerFeedback = function(currentItem, time, choices) {
             console.log('[IAT] WRONG OR MISSING!');
             answers.errors.push({ trial: currentItem, time: time, choices: choices });
+            displayRedCrossFeedback(true);
             resetAnswer();
             setTimerForAnswer(10, currentItem);
           };
