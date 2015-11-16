@@ -130,6 +130,7 @@ window.IAT = (function(window, undefined) {
          });
       } else {
         console.log('[IAT] Test is finished.');
+        console.log(answerStore);
       }
     }
 
@@ -142,8 +143,6 @@ window.IAT = (function(window, undefined) {
    * @param {Object} data  The data parsed from JSON.
    */
   function start(data) {
-    console.log(data)
-
     // Store jQuery-wrapped `window`,
     // key codes constants for `E` and `I` keys,
     // and a dictionnary for those keys so that
@@ -243,8 +242,6 @@ window.IAT = (function(window, undefined) {
           results: [],
           errors: [],
         };
-
-        console.log(setA, setB);
 
         /**
          * Displays the next trial.
