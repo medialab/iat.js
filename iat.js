@@ -13,13 +13,13 @@ window.IAT = (function(window, undefined) {
     '        opacity:0;' +
     '        position:absolute;' +
     '        width:200px;height:200px;'+
-    '        background:url(img/redcross.gif) transparent center no-repeat;' +
+    '        background:url(upload/templates/mango/scripts/iat.js/img/redcross.gif) transparent center no-repeat;' +
     '        text-indent:-99999em;">' +
     '"×</div>'
   );
 
   // List of JSON files describing data used in each block.
-  var dataFiles = [];
+  var testData = [];
 
   // Stores all answers from consecutive tests.
   var answerStore = [];
@@ -32,9 +32,8 @@ window.IAT = (function(window, undefined) {
    * @param  {Array}      files     List of JSON files describing data used in each block.
    * @return {void}
    */
-  var startIAT = function(targetEl, files) {
-    $targetEl = $(targetEl);
-    dataFiles = files;
+  var startIAT = function($targetEl, data) {
+    testData = data;
 
     $targetEl = buildDOMTree($targetEl, $redCross);
     setUpLayout();
@@ -134,18 +133,16 @@ window.IAT = (function(window, undefined) {
    */
   function loadTasks() {
     var currentTaskIndex = 0;
-    var countTask = dataFiles.length;
+    var countTask = testData.length;
 
     var loadTask = function(taskIndex) {
       if (taskIndex < countTask) {
         currentTaskIndex++;
-        $.when(loadJSON(dataFiles[taskIndex]))
-         .then(function(data) {
-           start(data).then(function(answers) {
-             answerStore.push(answers);
-             loadTask(currentTaskIndex);
-           });
-         });
+        var data = testData[taskIndex];
+        start(data).then(function(answers) {
+          answerStore.push(answers);
+          loadTask(currentTaskIndex);
+        });
       } else {
         console.log('[IAT] Test is finished.');
         console.log(answerStore);
@@ -326,7 +323,7 @@ window.IAT = (function(window, undefined) {
            */
           function keyupHandler(e) {
             if (!pressedBtn) {
-              if (e.keyCode === KEYCODE_E_LEFT || e.keyCode === KEYCODE_I_RIGHT) {
+              if (e.keyCode === KEYCODE_E_LEFT || e.keyCode === KEYCODE_I_RIGHT) {
                 pressedBtn = e.keyCode;
                 var time = answerMeasureTimer.getElapsed();
                 if (displayedChoices[KEYS[pressedBtn]] === pluckedItem.type) {
