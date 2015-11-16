@@ -1,6 +1,5 @@
-'use strict';
-
 window.IAT = (function(window, undefined) {
+  'use strict';
 
   // jQuery object based on target element the view should attached itself to.
   var $targetEl;
@@ -12,7 +11,7 @@ window.IAT = (function(window, undefined) {
     ' style="display:none;' +
     '        opacity:0;' +
     '        position:absolute;' +
-    '        width:200px;height:200px;'+
+    '        width:200px;height:200px;' +
     '        background:url(upload/templates/mango/scripts/iat.js/img/redcross.gif) transparent center no-repeat;' +
     '        text-indent:-99999em;">' +
     '"×</div>'
@@ -62,7 +61,7 @@ window.IAT = (function(window, undefined) {
     var nodes = [].slice.call(arguments)
                   .splice(1, arguments.length);
 
-    _.each(nodes, function (node) {
+    _.each(nodes, function(node) {
       root.append(node);
     });
 
@@ -78,7 +77,7 @@ window.IAT = (function(window, undefined) {
     function centerRedCross() {
       $redCross.offset({
         top: ($window.height() - $redCross.height()) / 2,
-        left: ($window.width() - $redCross.width()) / 2
+        left: ($window.width() - $redCross.width()) / 2,
       });
     }
 
@@ -94,9 +93,9 @@ window.IAT = (function(window, undefined) {
    */
   function displayRedCrossFeedback(display) {
     if (display) {
-      $redCross.css('display', 'block').animate({ 'opacity': 1}, 500);
+      $redCross.css('display', 'block').animate({opacity: 1}, 500);
     } else {
-      $redCross.animate({ 'opacity': 0}, 500, function() {
+      $redCross.animate({opacity: 0}, 500, function() {
         $redCross.css('display', 'none');
       });
     }
@@ -147,7 +146,7 @@ window.IAT = (function(window, undefined) {
         console.log('[IAT] Test is finished.');
         console.log(answerStore);
       }
-    }
+    };
 
     loadTask(0);
   }
@@ -373,10 +372,10 @@ window.IAT = (function(window, undefined) {
             var pluckedItem = preparedSet.shift();
 
             console.log(
-              '[IAT] Left screen is "'
-              + displayedChoices.left
-              + '", right screen is "'
-              + displayedChoices.right + '".'
+              '[IAT] Left screen is "' +
+              displayedChoices.left +
+              '", right screen is "' +
+              displayedChoices.right + '".'
             );
             console.log(
               '[IAT] Stimuli displayed is "' + pluckedItem.item + '" (' + pluckedItem.type + ').'
@@ -385,11 +384,10 @@ window.IAT = (function(window, undefined) {
             // Let the user proposes an answer.
             setTimerForAnswer(DEFAULT_ANSWER_TIMESPAN, pluckedItem);
           } else {
-
             // If nore more trials, resolve the promise with a payload of results.
             console.log('[IAT] Finished block.');
             deferred.resolve(answers);
-          };
+          }
         }.bind(this);
 
         // Start the block.
@@ -459,7 +457,7 @@ window.IAT = (function(window, undefined) {
 
   return {
     start: startIAT,
-    getAnswers: getAnswers
-  }
+    getAnswers: getAnswers,
+  };
 
 })(window, undefined);
