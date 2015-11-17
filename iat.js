@@ -4,24 +4,75 @@ window.IAT = (function(window, undefined) {
   // jQuery object based on target element the view should attached itself to.
   var $targetEl;
 
-  // Big red cross displayed as feedback when user times out on
-  // an answer or give the wrong one.
-  var $redCross = $(
-    '<div id="iat-red-cross"' +
-    ' style="display:none;' +
-    '        opacity:0;' +
-    '        position:absolute;' +
-    '        width:200px;height:200px;' +
-    '        background:url(upload/templates/mango/scripts/iat.js/img/redcross.gif) transparent center no-repeat;' +
-    '        text-indent:-99999em;">' +
-    '"×</div>'
-  );
-
   // List of JSON files describing data used in each block.
   var testData = [];
 
   // Stores all answers from consecutive tests.
   var answerStore = [];
+
+  // Styles used throughout all the gui interfaces
+  var styles = ('<style>' +
+    '#iat-red-cross {' +
+      'display:none;' +
+      '          opacity:0;' +
+      '          position:absolute;' +
+      '          z-index: 2;' +
+      '          left: 50%;' +
+      '          top: 50%;' +
+      '          margin-left: -100px;' +
+      '          margin-top: -100px;' +
+      '          width:200px;height:200px;' +
+      '          background:url({{urlBase}}/img/redcross.gif) transparent center no-repeat;' +
+    '}' +
+
+    '#iat-container {' +
+    'width: 400px;' +
+    'height: 150px;' +
+    'padding: 10px;' +
+    'margin: auto;' +
+    'background: white;' +
+    'position: relative;' +
+    'font-size: 16px;' +
+    'line-height: 1.2em;' +
+    '}' +
+
+    '.concept {' +
+    'font-weight: bold;' +
+    '} ' +
+
+    '.key {' +
+    'font-weight: bold;' +
+    '}' +
+
+    '.proceed-button {' +
+    'width: 100px;' +
+    'position: absolute;' +
+    'left: 50%;' +
+    'margin-left: -50px;' +
+    'margin-top: 50px;' +
+    'font-size: 16px;' +
+    '}' +
+
+    '.left-item {' +
+      'position: absolute;' +
+      'top: 10px;' +
+      'left: 10px;' +
+    '}' +
+
+    '.right-item {' +
+      'position: absolute;' +
+      'top: 10px;' +
+      'right: 10px;' +
+    '}' +
+
+    '.candidate {' +
+      'padding-top: 100px;' +
+      'padding-bottom: 100px;' +
+      'width: 100%;' +
+      'text-align: center;' +
+      'font-size: 20px;' +
+    '}' +
+  '</style>');
 
   /**
    * Start the test.
@@ -31,12 +82,10 @@ window.IAT = (function(window, undefined) {
    * @param  {Array}      files     List of JSON files describing data used in each block.
    * @return {void}
    */
-  var startIAT = function($targetEl, data) {
+  var startIAT = function($root, data, urlBase) {
     testData = data;
-
-    $targetEl = buildDOMTree($targetEl, $redCross);
-    setUpLayout();
-
+    $targetEl = $root;
+    updateStyles(urlBase);
     loadTasks();
   }.bind(this);
 
@@ -48,6 +97,22 @@ window.IAT = (function(window, undefined) {
   var getAnswers = function() {
     return answerStore;
   }.bind(this);
+
+  /**
+   * Updates assets paths in styles with the given base url
+   * @param  {String} urlBase the base url to prepend to assets urls
+   */
+  function updateStyles(urlBase) {
+    if (!urlBase || !urlBase.length) {
+      urlBase = '.';
+    }
+
+    if (urlBase[urlBase.length - 1] !== '/') {
+      urlBase += '/';
+    }
+
+    styles = styles.replace('{{urlBase}}', urlBase);
+  }
 
   /**
    * Builds DOM tree for elements display by IAT.js (feedback, stimuli, etc...)
@@ -69,20 +134,54 @@ window.IAT = (function(window, undefined) {
   }
 
   /**
-   * Helper function to ensure layout is properly set, centered.
+   * Displays an splash screen before starting a test block
+   * @param  {left: <left-concept>: right: <right-concept>} data about the test block
    */
-  function setUpLayout() {
-    var $window = $(window);
+  function showSplash(data) {
+    var done = $.Deferred();
 
-    function centerRedCross() {
-      $redCross.offset({
-        top: ($window.height() - $redCross.height()) / 2,
-        left: ($window.width() - $redCross.width()) / 2,
-      });
-    }
+    $targetEl.html(
+      styles +
+      '<div id="iat-container">' +
+        '<div>' +
+        'In the next test, you will be tasked to associate words with either the concept <span class="concept">' +
+        data.left +
+        '</span> (by pressing the <span class="key">E</span> key) or <span class="concept">' +
+        data.right +
+        '</span> (by pressing the <span class="key">I</span> key).' +
+        '</div>' +
+        '<input type="button" value="proceed" class="proceed-button"/>' +
+      '</div>'
+    );
+    $('.proceed-button').click(function(event) {
+      event.preventDefault();
+      done.resolve();
+    });
 
-    centerRedCross();
-    $window.on('resize', centerRedCross);
+    return done.promise();
+  }
+
+  /**
+   * Update the UI's texts with the given test data
+   * @param {Object} data test data that will be displayed
+   */
+  function updateUI(data) {
+    $targetEl.html(
+      styles +
+      '<div id="iat-container">' +
+      '  <div class="left-item concept">' +
+          data.left +
+      '  </div>' +
+      '  <div class="right-item concept">' +
+          data.right +
+      '  </div>' +
+      '  <div class="candidate">' +
+          data.candidate +
+      '  </div>' +
+      '  <div id="iat-red-cross"' +
+      '  </div>' +
+      '</div>'
+    );
   }
 
   /**
@@ -92,6 +191,8 @@ window.IAT = (function(window, undefined) {
    * @return {void}
    */
   function displayRedCrossFeedback(display) {
+    var $redCross = $('#iat-red-cross');
+
     if (display) {
       $redCross.css('display', 'block').animate({opacity: 1}, 500);
     } else {
@@ -371,6 +472,11 @@ window.IAT = (function(window, undefined) {
 
             var pluckedItem = preparedSet.shift();
 
+            updateUI({
+              left: displayedChoices.left,
+              right: displayedChoices.right,
+              candidate: pluckedItem.item,
+            });
             console.log(
               '[IAT] Left screen is "' +
               displayedChoices.left +
@@ -393,7 +499,16 @@ window.IAT = (function(window, undefined) {
         // Start the block.
         var start = function() {
           console.log('[IAT] Starting practice block.');
-          displayNextTrial();
+
+          showSplash({
+            left: displayedChoices.left,
+            right: displayedChoices.right,
+            candidate: '',
+          })
+            .then(function() {
+              displayNextTrial();
+            });
+
           return deferred.promise();
         };
 
