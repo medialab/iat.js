@@ -22,7 +22,7 @@ window.IAT = (function(window, undefined) {
       '          margin-left: -100px;' +
       '          margin-top: -100px;' +
       '          width:200px;height:200px;' +
-      '          background:url(upload/templates/mango/scripts/iat.js/img/redcross.gif) transparent center no-repeat;' +
+      '          background:url({{urlBase}}/img/redcross.gif) transparent center no-repeat;' +
     '}' +
 
     '#iat-container {' +
@@ -82,9 +82,10 @@ window.IAT = (function(window, undefined) {
    * @param  {Array}      files     List of JSON files describing data used in each block.
    * @return {void}
    */
-  var startIAT = function($root, data) {
+  var startIAT = function($root, data, urlBase) {
     testData = data;
     $targetEl = $root;
+    updateStyles(urlBase);
     loadTasks();
   }.bind(this);
 
@@ -96,6 +97,22 @@ window.IAT = (function(window, undefined) {
   var getAnswers = function() {
     return answerStore;
   }.bind(this);
+
+  /**
+   * Updates assets paths in styles with the given base url
+   * @param  {String} urlBase the base url to prepend to assets urls
+   */
+  function updateStyles(urlBase) {
+    if (!urlBase || !urlBase.length) {
+      urlBase = '.';
+    }
+
+    if (urlBase[urlBase.length - 1] !== '/') {
+      urlBase += '/';
+    }
+
+    styles = styles.replace('{{urlBase}}', urlBase);
+  }
 
   /**
    * Builds DOM tree for elements display by IAT.js (feedback, stimuli, etc...)
