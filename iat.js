@@ -74,6 +74,17 @@ window.IAT = (function(window, undefined) {
     '}' +
   '</style>');
 
+  // Default message to display before a test
+  var defaultSplashMessage = '<div id="iat-container">' +
+    '<div>' +
+    'In the next test, you will be tasked to associate words with either the concept <span class="concept">' +
+    '{{left}}' +
+    '</span> (by pressing the <span class="key">E</span> key) or <span class="concept">' +
+    '{{right}}' +
+    '</span> (by pressing the <span class="key">I</span> key).' +
+    '</div>' +
+  '</div>';
+
   /**
    * Start the test.
    *
@@ -137,22 +148,18 @@ window.IAT = (function(window, undefined) {
    * Displays an splash screen before starting a test block
    * @param  {left: <left-concept>: right: <right-concept>} data about the test block
    */
-  function showSplash(data) {
+  function showSplash(message, data) {
     var done = $.Deferred();
+
+    message = message.replace('{{left}}', data.left);
+    message = message.replace('{{right}}', data.right);
 
     $targetEl.html(
       styles +
       '<div id="iat-container">' +
-        '<div>' +
-        'In the next test, you will be tasked to associate words with either the concept <span class="concept">' +
-        data.left +
-        '</span> (by pressing the <span class="key">E</span> key) or <span class="concept">' +
-        data.right +
-        '</span> (by pressing the <span class="key">I</span> key).' +
-        '</div>' +
+        message +
         '<input type="button" value="proceed" class="proceed-button"/>' +
-      '</div>'
-    );
+      '</div>');
     $('.proceed-button').click(function(event) {
       event.preventDefault();
       done.resolve();
@@ -332,19 +339,18 @@ window.IAT = (function(window, undefined) {
      * OR a pair of evaluation (but not both at the same time!),
      * set in top of the left and right halves of the screen.
      *
-     * @param  {Array} pairedSetsInArray  An array of two objects each following
-     *                                    this nomenclatura: {type:String, items:Array}.
+     * @param  {Object} blockData  {test:{type:String, items:Array}, splashMessage: ''}
      *
      * @return {Object}  An object built upon a scoped construction.
      * Provides an `start` method, returns a promise. The `start` method will run
      * the entire block of trials till the end. Once resolved, the promise will take
      * a function and pass it an object holding the results of challenge.
      */
-    function createBlock(pairedSetsInArray) {
+    function createBlock(blockData) {
 
-      return (function(pairedSetsInArray) {
-        var setA = pairedSetsInArray[0];
-        var setB = pairedSetsInArray[1];
+      return (function(blockData) {
+        var setA = blockData.test[0];
+        var setB = blockData.test[1];
         var displayedChoices = getDisplayableChoices(setA, setB);
         var totalTrials = setA.items.length + setB.items.length;
         var currentTrial = 0;
@@ -490,7 +496,7 @@ window.IAT = (function(window, undefined) {
             // Let the user proposes an answer.
             setTimerForAnswer(DEFAULT_ANSWER_TIMESPAN, pluckedItem);
           } else {
-            // If nore more trials, resolve the promise with a payload of results.
+            // If no more trials, resolve the promise with a payload of results.
             console.log('[IAT] Finished block.');
             deferred.resolve(answers);
           }
@@ -500,12 +506,24 @@ window.IAT = (function(window, undefined) {
         var start = function() {
           console.log('[IAT] Starting practice block.');
 
-          showSplash({
-            left: displayedChoices.left,
-            right: displayedChoices.right,
-            candidate: '',
-          })
-            .then(function() {
+          var beforeStart;
+          if (blockData.splashMessage) {
+            var splashMessage = (typeof blockData.splashMessage === 'string') ? blockData.splashMessage : defaultSplashMessage;
+
+            beforeStart = showSplash(
+              splashMessage,
+              {
+                left: displayedChoices.left,
+                right: displayedChoices.right,
+                candidate: '',
+              }
+            );
+          } else {
+            beforeStart = $.Deferred();
+            beforeStart.resolve();
+          }
+
+          beforeStart.then(function() {
               displayNextTrial();
             });
 
@@ -516,7 +534,7 @@ window.IAT = (function(window, undefined) {
         return {
           start: start,
         };
-      })(pairedSetsInArray);
+      })(blockData);
 
     }
 
