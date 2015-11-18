@@ -95,7 +95,7 @@ window.IAT = (function(window, undefined) {
     testData = data;
     $targetEl = $root;
     updateStyles(urlBase);
-    loadTasks();
+    return loadTasks();
   }.bind(this);
 
   /**
@@ -227,17 +227,18 @@ window.IAT = (function(window, undefined) {
       if (taskIndex < countTask) {
         currentTaskIndex++;
         var data = testData[taskIndex];
-        start(data).then(function(answers) {
+        return start(data).then(function(answers) {
           answerStore.push(answers);
-          loadTask(currentTaskIndex);
+          return loadTask(currentTaskIndex);
         });
       } else {
         console.log('[IAT] Test is finished.');
         console.log(answerStore);
+        return answerStore;
       }
     };
 
-    loadTask(0);
+    return loadTask(0);
   }
 
   /**
