@@ -75,15 +75,13 @@ window.IAT = (function(window, undefined) {
   '</style>');
 
   // Default message to display before a test
-  var defaultSplashMessage = '<div id="iat-container">' +
-    '<div>' +
-    'In the next test, you will be tasked to associate words with either the concept <span class="concept">' +
+  var defaultSplashMessage = 'In the next test, you will be tasked to associate words with either the concept ' +
     '{{left}}' +
-    '</span> (by pressing the <span class="key">E</span> key) or <span class="concept">' +
+    ' (by pressing the <span class="key">E</span> key) or ' +
     '{{right}}' +
-    '</span> (by pressing the <span class="key">I</span> key).' +
-    '</div>' +
-  '</div>';
+    ' (by pressing the <span class="key">I</span> key).';
+
+  var defaultButtonText = 'proceed';
 
   /**
    * Start the test.
@@ -148,24 +146,49 @@ window.IAT = (function(window, undefined) {
    * Displays an splash screen before starting a test block
    * @param  {left: <left-concept>: right: <right-concept>} data about the test block
    */
-  function showSplash(message, data) {
-    var done = $.Deferred();
+  function showSplash(blockData, data) {
+    var message;
+    var buttonText;
+    var splashDone = $.Deferred();
 
-    message = message.replace('{{left}}', data.left);
-    message = message.replace('{{right}}', data.right);
+    if (!blockData.splash) {
+      splashDone.resolve();
+      return splashDone.promise();
+    }
+
+    if (
+      blockData.splash.message &&
+      typeof blockData.splash.message === 'string'
+    ) {
+      message = blockData.splash.message;
+    } else {
+      message = defaultSplashMessage;
+    }
+
+    if (
+      blockData.splash.buttonText &&
+      typeof blockData.splash.buttonText === 'string'
+    ) {
+      buttonText = blockData.splash.buttonText;
+    } else {
+      buttonText = defaultButtonText;
+    }
+
+    message = message.replace('{{left}}', '<span class="concept">' + data.left + '</span>');
+    message = message.replace('{{right}}', '<span class="concept">' + data.right + '</span>');
 
     $targetEl.html(
       styles +
       '<div id="iat-container">' +
         message +
-        '<input type="button" value="proceed" class="proceed-button"/>' +
+        '<input type="button" value="' + buttonText + '" class="proceed-button"/>' +
       '</div>');
     $('.proceed-button').click(function(event) {
       event.preventDefault();
-      done.resolve();
+      splashDone.resolve();
     });
 
-    return done.promise();
+    return splashDone.promise();
   }
 
   /**
@@ -493,38 +516,29 @@ window.IAT = (function(window, undefined) {
               '[IAT] Stimuli displayed is "' + pluckedItem.item + '" (' + pluckedItem.type + ').'
             );
 
-            // Let the user proposes an answer.
+            // Let the user suggest an answer.
             setTimerForAnswer(DEFAULT_ANSWER_TIMESPAN, pluckedItem);
           } else {
             // If no more trials, resolve the promise with a payload of results.
             console.log('[IAT] Finished block.');
             deferred.resolve(answers);
           }
+
         }.bind(this);
 
-        // Start the block.
-        var start = function() {
+        var startBlock = function() {
           console.log('[IAT] Starting practice block.');
 
-          var beforeStart;
-          if (blockData.splashMessage) {
-            var splashMessage = (typeof blockData.splashMessage === 'string') ? blockData.splashMessage : defaultSplashMessage;
-
-            beforeStart = showSplash(
-              splashMessage,
+          showSplash(
+              blockData,
               {
                 left: displayedChoices.left,
                 right: displayedChoices.right,
                 candidate: '',
               }
-            );
-          } else {
-            beforeStart = $.Deferred();
-            beforeStart.resolve();
-          }
-
-          beforeStart.then(function() {
-              displayNextTrial();
+            )
+            .then(function() {
+              return displayNextTrial();
             });
 
           return deferred.promise();
@@ -532,7 +546,7 @@ window.IAT = (function(window, undefined) {
 
         // Public API.
         return {
-          start: start,
+          start: startBlock,
         };
       })(blockData);
 
