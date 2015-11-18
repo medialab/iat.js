@@ -124,25 +124,6 @@ window.IAT = (function(window, undefined) {
   }
 
   /**
-   * Builds DOM tree for elements display by IAT.js (feedback, stimuli, etc...)
-   *
-   * @param  {Object}  $rootEl          jQuery-wrapped DOMElement serving as root node.
-   * @param  {...rest} restParamsNodes  Rest params of jQuery object or DOMElement to attach.
-   * @return {Object}  A jQuery-wrapped DOM tree.
-   */
-  function buildDOMTree($rootEl, restParamsNodes) {
-    var root = $rootEl;
-    var nodes = [].slice.call(arguments)
-                  .splice(1, arguments.length);
-
-    _.each(nodes, function(node) {
-      root.append(node);
-    });
-
-    return root;
-  }
-
-  /**
    * Displays an splash screen before starting a test block
    * @param  {left: <left-concept>: right: <right-concept>} data about the test block
    */
@@ -230,29 +211,6 @@ window.IAT = (function(window, undefined) {
         $redCross.css('display', 'none');
       });
     }
-  }
-
-  /**
-   * Promise to load JSON data.
-   *
-   * @param  {String} fileUri  Path to the file to load.
-   * @return {Object} Promise resolving loaded data.
-   */
-  function loadJSON(fileUri) {
-    var deferred = $.Deferred();
-
-    $.ajax({
-      dataType: 'json',
-      url: fileUri,
-    }).fail(function() {
-      console.log('[IAT] Failed loading data from ' + fileUri + '.');
-      deferred.reject();
-    }).done(function(data) {
-      console.log('[IAT] Loaded "' + fileUri + '".');
-      deferred.resolve(data);
-    });
-
-    return deferred.promise();
   }
 
   /**
