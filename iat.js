@@ -1,147 +1,245 @@
-'use strict';
+window.IAT = (function(window, undefined) {
+  'use strict';
 
-$(function(window, undefined) {
+  // jQuery object based on target element the view should attached itself to.
+  var $targetEl;
+
+  // List of JSON files describing data used in each block.
+  var testData = [];
 
   // Stores all answers from consecutive tests.
   var answerStore = [];
 
-  /**
-   * Promise to load JSON data.
-   *
-   * @param  {String} fileUri  Path to the file to load.
-   * @return {Object} Promise resolving loaded data.
-   */
-  function loadJSON(fileUri) {
-    var deferred = $.Deferred();
+  // Styles used throughout all the gui interfaces
+  var styles = ('<style>' +
+    '#iat-red-cross {' +
+      'display:none;' +
+      '          opacity:0;' +
+      '          position:absolute;' +
+      '          z-index: 2;' +
+      '          left: 50%;' +
+      '          top: 50%;' +
+      '          margin-left: -100px;' +
+      '          margin-top: -100px;' +
+      '          width:200px;height:200px;' +
+      '          background:url({{urlBase}}/img/redcross.gif) transparent center no-repeat;' +
+    '}' +
 
-    $.ajax({
-      dataType: 'json',
-      url: fileUri,
-    }).fail(function() {
-      console.log('[IAT] Failed loading data from ' + fileUri + '.');
-      deferred.reject();
-    }).done(function(data) {
-      console.log('[IAT] Loaded "' + fileUri + '".');
-      deferred.resolve(data);
+    '#iat-container {' +
+    'width: 400px;' +
+    'height: 150px;' +
+    'padding: 10px;' +
+    'margin: auto;' +
+    'background: white;' +
+    'position: relative;' +
+    'font-size: 16px;' +
+    'line-height: 1.2em;' +
+    '}' +
+
+    '.concept {' +
+    'font-weight: bold;' +
+    '} ' +
+
+    '.key {' +
+    'font-weight: bold;' +
+    '}' +
+
+    '.proceed-button {' +
+    'width: 100px;' +
+    'position: absolute;' +
+    'left: 50%;' +
+    'margin-left: -50px;' +
+    'margin-top: 50px;' +
+    'font-size: 16px;' +
+    '}' +
+
+    '.left-item {' +
+      'position: absolute;' +
+      'top: 10px;' +
+      'left: 10px;' +
+    '}' +
+
+    '.right-item {' +
+      'position: absolute;' +
+      'top: 10px;' +
+      'right: 10px;' +
+    '}' +
+
+    '.candidate {' +
+      'padding-top: 100px;' +
+      'padding-bottom: 100px;' +
+      'width: 100%;' +
+      'text-align: center;' +
+      'font-size: 20px;' +
+    '}' +
+  '</style>');
+
+  // Default message to display before a test
+  var defaultSplashMessage = 'In the next test, you will be tasked to associate words with either the concept ' +
+    '{{left}}' +
+    ' (by pressing the <span class="key">E</span> key) or ' +
+    '{{right}}' +
+    ' (by pressing the <span class="key">I</span> key).';
+
+  var defaultButtonText = 'proceed';
+
+  /**
+   * Start the test.
+   *
+   * @public
+   * @param  {DOMElement} targetEl  Target element the view should attached itself to.
+   * @param  {Array}      files     List of JSON files describing data used in each block.
+   * @return {void}
+   */
+  var startIAT = function($root, data, urlBase) {
+    testData = data;
+    $targetEl = $root;
+    updateStyles(urlBase);
+    return loadTasks();
+  }.bind(this);
+
+  /**
+   * Getter method to obtain all the answers.
+   *
+   * @return {Array}  Reference to the answerStore containing all the recorded answers.
+   */
+  var getAnswers = function() {
+    return answerStore;
+  }.bind(this);
+
+  /**
+   * Updates assets paths in styles with the given base url
+   * @param  {String} urlBase the base url to prepend to assets urls
+   */
+  function updateStyles(urlBase) {
+    if (!urlBase || !urlBase.length) {
+      urlBase = '.';
+    }
+
+    if (urlBase[urlBase.length - 1] !== '/') {
+      urlBase += '/';
+    }
+
+    styles = styles.replace('{{urlBase}}', urlBase);
+  }
+
+  /**
+   * Displays an splash screen before starting a test block
+   * @param  {left: <left-concept>: right: <right-concept>} data about the test block
+   */
+  function showSplash(splashData, data) {
+    var message;
+    var buttonText;
+    var splashDone = $.Deferred();
+
+    if (!splashData) {
+      splashDone.resolve();
+      return splashDone.promise();
+    }
+
+    if (
+      splashData.message &&
+      typeof splashData.message === 'string'
+    ) {
+      message = splashData.message;
+    } else {
+      message = defaultSplashMessage;
+    }
+
+    if (
+      splashData.buttonText &&
+      typeof splashData.buttonText === 'string'
+    ) {
+      buttonText = splashData.buttonText;
+    } else {
+      buttonText = defaultButtonText;
+    }
+
+    message = message.replace('{{left}}', '<span class="concept">' + data.left + '</span>');
+    message = message.replace('{{right}}', '<span class="concept">' + data.right + '</span>');
+
+    $targetEl.html(
+      styles +
+      '<div id="iat-container">' +
+        message +
+        '<input type="button" value="' + buttonText + '" class="proceed-button"/>' +
+      '</div>');
+    $('.proceed-button').click(function(event) {
+      event.preventDefault();
+      splashDone.resolve();
     });
 
-    return deferred.promise();
+    return splashDone.promise();
   }
 
   /**
-   * Loading and processing for Task 1 (practice).
-   *
-   * @return {void}
+   * Update the UI's texts with the given test data
+   * @param {Object} data test data that will be displayed
    */
-  function loadTask1() {
-    $.when(loadJSON('task_1_practice.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask2();
-        });
-     });
+  function updateUI(data) {
+    $targetEl.html(
+      styles +
+      '<div id="iat-container">' +
+      '  <div class="left-item concept">' +
+          data.left +
+      '  </div>' +
+      '  <div class="right-item concept">' +
+          data.right +
+      '  </div>' +
+      '  <div class="candidate">' +
+          data.candidate +
+      '  </div>' +
+      '  <div id="iat-red-cross"' +
+      '  </div>' +
+      '</div>'
+    );
   }
 
   /**
-   * Loading and processing for Task 2 (practice).
+   * Display red cross image feedback.
    *
+   * @param  {boolean} display  Whether to display image or not.
    * @return {void}
    */
-  function loadTask2() {
-    $.when(loadJSON('task_2_practice.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask3();
-        });
-     });
+  function displayRedCrossFeedback(display) {
+    var $redCross = $('#iat-red-cross');
+
+    if (display) {
+      $redCross.css('display', 'block').animate({opacity: 1}, 500);
+    } else {
+      $redCross.animate({opacity: 0}, 500, function() {
+        $redCross.css('display', 'none');
+      });
+    }
   }
 
   /**
-   * Loading and processing for Task 3 (data collection).
+   * Consume the array of JSON files describing the trials
+   * to start the cycle of tests.
    *
    * @return {void}
    */
-  function loadTask3() {
-    $.when(loadJSON('task_3_data_collection.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask4();
-        });
-     });
-  }
+  function loadTasks() {
+    var currentTaskIndex = 0;
+    var countTask = testData.length;
 
-  /**
-   * Loading and processing for Task 4 (data collection).
-   *
-   * @return {void}
-   */
-  function loadTask4() {
-    $.when(loadJSON('task_4_data_collection.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
+    var loadTask = function(taskIndex) {
+      if (taskIndex < countTask) {
+        currentTaskIndex++;
+        var data = testData[taskIndex];
+        return start(data).then(function(answers) {
           answerStore.push(answers);
-          loadTask5();
+          return loadTask(currentTaskIndex);
         });
-     });
-  }
+      } else {
+        console.log('[IAT] Test is finished.');
+        console.log(answerStore);
+        return answerStore;
+      }
+    };
 
-  /**
-   * Loading and processing for Task 5 (practice).
-   *
-   * @return {void}
-   */
-  function loadTask5() {
-    $.when(loadJSON('task_5_practice.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask6();
-        });
-     });
+    return loadTask(0);
   }
-
-  /**
-   * Loading and processing for Task 6 (data collection).
-   *
-   * @return {void}
-   */
-  function loadTask6() {
-    $.when(loadJSON('task_6_data_collection.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          loadTask7();
-        });
-     });
-  }
-
-  /**
-   * Loading and processing for Task 7 (data collection).
-   *
-   * @return {void}
-   */
-  function loadTask7() {
-    $.when(loadJSON('task_7_data_collection.json'))
-     .then(function(data) {
-       start(data)
-        .then(function(answers) {
-          answerStore.push(answers);
-          console.log('[IAT] Test finished.');
-        });
-     });
-  }
-
-  // Start.
-  loadTask1();
 
   /**
    * Start the application when data is loaded and ready.
@@ -149,7 +247,6 @@ $(function(window, undefined) {
    * @param {Object} data  The data parsed from JSON.
    */
   function start(data) {
-
     // Store jQuery-wrapped `window`,
     // key codes constants for `E` and `I` keys,
     // and a dictionnary for those keys so that
@@ -224,19 +321,18 @@ $(function(window, undefined) {
      * OR a pair of evaluation (but not both at the same time!),
      * set in top of the left and right halves of the screen.
      *
-     * @param  {Array} pairedSetsInArray  An array of two objects each following
-     *                                    this nomenclatura: {type:String, items:Array}.
+     * @param  {Object} blockData  {test:{type:String, items:Array}, splashMessage: ''}
      *
      * @return {Object}  An object built upon a scoped construction.
      * Provides an `start` method, returns a promise. The `start` method will run
      * the entire block of trials till the end. Once resolved, the promise will take
      * a function and pass it an object holding the results of challenge.
      */
-    function createBlock(pairedSetsInArray) {
+    function createBlock(blockData) {
 
-      return (function(pairedSetsInArray) {
-        var setA = pairedSetsInArray[0];
-        var setB = pairedSetsInArray[1];
+      return (function(blockData) {
+        var setA = blockData.test[0];
+        var setB = blockData.test[1];
         var displayedChoices = getDisplayableChoices(setA, setB);
         var totalTrials = setA.items.length + setB.items.length;
         var currentTrial = 0;
@@ -246,9 +342,9 @@ $(function(window, undefined) {
         var answerMeasureTimer = null;
         var answerLimitTimer = null;
         var answers = {
-              results: [],
-              errors: [],
-            };
+          results: [],
+          errors: [],
+        };
 
         /**
          * Displays the next trial.
@@ -295,6 +391,7 @@ $(function(window, undefined) {
            */
           function resetAnswer() {
             clearTimeout(answerLimitTimer);
+            displayRedCrossFeedback(false);
             $win.off('keyup', keyupHandler);
             answerMeasureTimer.stop();
             answerMeasureTimer = null;
@@ -314,15 +411,15 @@ $(function(window, undefined) {
            */
           function keyupHandler(e) {
             if (!pressedBtn) {
-              if (e.keyCode === KEYCODE_E_LEFT || e.keyCode === KEYCODE_I_RIGHT) {
+              if (e.keyCode === KEYCODE_E_LEFT || e.keyCode === KEYCODE_I_RIGHT) {
                 pressedBtn = e.keyCode;
                 var time = answerMeasureTimer.getElapsed();
                 if (displayedChoices[KEYS[pressedBtn]] === pluckedItem.type) {
                   resetAnswer();
                   answers.results.push({
                     trial: pluckedItem,
-                    time: time, choices:
-                    displayedChoices
+                    time: time,
+                    choices: displayedChoices,
                   });
                   displayNextTrial();
                 } else {
@@ -344,6 +441,7 @@ $(function(window, undefined) {
           var wrongAnswerFeedback = function(currentItem, time, choices) {
             console.log('[IAT] WRONG OR MISSING!');
             answers.errors.push({ trial: currentItem, time: time, choices: choices });
+            displayRedCrossFeedback(true);
             resetAnswer();
             setTimerForAnswer(10, currentItem);
           };
@@ -362,38 +460,61 @@ $(function(window, undefined) {
 
             var pluckedItem = preparedSet.shift();
 
+            updateUI({
+              left: displayedChoices.left,
+              right: displayedChoices.right,
+              candidate: pluckedItem.item,
+            });
             console.log(
-              '[IAT] Left screen is "'
-              + displayedChoices.left
-              + '", right screen is "'
-              + displayedChoices.right + '".'
+              '[IAT] Left screen is "' +
+              displayedChoices.left +
+              '", right screen is "' +
+              displayedChoices.right + '".'
             );
             console.log(
               '[IAT] Stimuli displayed is "' + pluckedItem.item + '" (' + pluckedItem.type + ').'
             );
 
-            // Let the user proposes an answer.
+            // Let the user suggest an answer.
             setTimerForAnswer(DEFAULT_ANSWER_TIMESPAN, pluckedItem);
           } else {
-
-            // If nore more trials, resolve the promise with a payload of results.
+            // If no more trials, resolve the promise with a payload of results.
             console.log('[IAT] Finished block.');
             deferred.resolve(answers);
-          };
+          }
+
         }.bind(this);
 
-        // Start the block.
-        var start = function() {
+        var startBlock = function() {
           console.log('[IAT] Starting practice block.');
-          displayNextTrial();
-          return deferred.promise();
+
+          showSplash(
+              blockData.splash,
+              {
+                left: displayedChoices.left,
+                right: displayedChoices.right,
+                candidate: '',
+              }
+            )
+            .then(function() {
+              return displayNextTrial();
+            });
+
+          return deferred.promise()
+            .then(function() {
+              return showSplash(blockData.post, {
+                left: displayedChoices.left,
+                right: displayedChoices.right,
+                candidate: '',
+              });
+            });
         };
 
         // Public API.
         return {
-          start: start,
+          start: startBlock,
         };
-      })(pairedSetsInArray);
+      })(blockData);
 
     }
 
@@ -443,8 +564,13 @@ $(function(window, undefined) {
     /**
      * Return the created block as a promise.
      */
-    return createBlock(data.evaluations).start();
+    return createBlock(data).start();
 
   }
 
-}(window, undefined));
+  return {
+    start: startIAT,
+    getAnswers: getAnswers,
+  };
+
+})(window, undefined);
