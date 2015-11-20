@@ -127,30 +127,30 @@ window.IAT = (function(window, undefined) {
    * Displays an splash screen before starting a test block
    * @param  {left: <left-concept>: right: <right-concept>} data about the test block
    */
-  function showSplash(blockData, data) {
+  function showSplash(splashData, data) {
     var message;
     var buttonText;
     var splashDone = $.Deferred();
 
-    if (!blockData.splash) {
+    if (!splashData) {
       splashDone.resolve();
       return splashDone.promise();
     }
 
     if (
-      blockData.splash.message &&
-      typeof blockData.splash.message === 'string'
+      splashData.message &&
+      typeof splashData.message === 'string'
     ) {
-      message = blockData.splash.message;
+      message = splashData.message;
     } else {
       message = defaultSplashMessage;
     }
 
     if (
-      blockData.splash.buttonText &&
-      typeof blockData.splash.buttonText === 'string'
+      splashData.buttonText &&
+      typeof splashData.buttonText === 'string'
     ) {
-      buttonText = blockData.splash.buttonText;
+      buttonText = splashData.buttonText;
     } else {
       buttonText = defaultButtonText;
     }
@@ -489,7 +489,7 @@ window.IAT = (function(window, undefined) {
           console.log('[IAT] Starting practice block.');
 
           showSplash(
-              blockData,
+              blockData.splash,
               {
                 left: displayedChoices.left,
                 right: displayedChoices.right,
@@ -500,7 +500,14 @@ window.IAT = (function(window, undefined) {
               return displayNextTrial();
             });
 
-          return deferred.promise();
+          return deferred.promise()
+            .then(function() {
+              return showSplash(blockData.post, {
+                left: displayedChoices.left,
+                right: displayedChoices.right,
+                candidate: '',
+              });
+            });
         };
 
         // Public API.
